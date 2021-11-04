@@ -6,8 +6,10 @@ import transformers
 from transformers.modeling_bert import BertPreTrainedModel, BertForSequenceClassification, BertModel, BertOnlyMLMHead
 from transformers.modeling_roberta import RobertaForSequenceClassification, RobertaModel, RobertaLMHead, RobertaClassificationHead
 from transformers.modeling_outputs import SequenceClassifierOutput
-
+import numpy as np
 import logging
+import torch.nn.functional as F
+
 logger = logging.getLogger(__name__)
 
 def resize_token_type_embeddings(model, new_num_types: int, random_segment: bool):
@@ -105,6 +107,8 @@ class BertForPromptFinetuning(BertPreTrainedModel):
                 loss_fct = nn.CrossEntropyLoss()
                 loss = loss_fct(logits.view(-1, logits.size(-1)), labels.view(-1))
 
+
+
         output = (logits,)
         if self.num_labels == 1:
             # Regression output
@@ -135,12 +139,57 @@ class RobertaForPromptFinetuning(BertPreTrainedModel):
         # For auto label search.
         self.return_full_softmax = None
 
+    def contrastive_loss(self, sentence_embedding, label):
+        batch_num = len(sentence_embedding)
+        criterion = nn.CrossEntropyLoss()
+        cos_sim = nn.CosineSimilarity(dim=0, eps=1e-6)
+        loss = 0
+        label = label.cpu()
+        label = label.numpy()
+        for i in range(batch_num):
+            for j in range(batch_num):
+                sim = cos_sim(sentence_embedding[i], sentence_embedding[j])
+                # logit_sim = torch.tensor([(1 - sim) * 50, (1 + sim) * 50])
+                sim = sim.unsqueeze(0)
+                logit_sim = torch.cat(((1 - sim) * 50, (1 + sim) * 50),dim=-1)
+                if label[i] == label[j]:
+                    loss += criterion(logit_sim.view(-1, logit_sim.size(-1)), (torch.tensor(1, device='cuda:0').view(-1)))
+                else:
+                    loss += criterion(logit_sim.view(-1, logit_sim.size(-1)), (torch.tensor(0, device='cuda:0').view(-1)))
+        loss = loss / (batch_num * batch_num - batch_num)
+        loss = loss / 100
+        return loss
+
+    def contrastive_loss2(self, sentence_embedding, label):
+        T = 0.5  
+        label = label
+        n = label.shape[0]  # batch
+        representations = sentence_embedding
+        similarity_matrix = F.cosine_similarity(representations.unsqueeze(1), representations.unsqueeze(0), dim=2)
+        mask = torch.ones_like(similarity_matrix, device='cuda:0', requires_grad=True) * (label.expand(n, n).eq(label.expand(n, n).t()))
+        mask_no_sim = torch.ones_like(mask, device='cuda:0', requires_grad=True) - mask
+        mask_dui_jiao_0 = torch.ones(n ,n, device='cuda:0', requires_grad=True) - torch.eye(n, n , device='cuda:0', requires_grad=True)
+        
+        similarity_matrix = torch.exp(similarity_matrix/T)
+        similarity_matrix = similarity_matrix*mask_dui_jiao_0
+        sim = mask*similarity_matrix
+        no_sim = similarity_matrix - sim
+        no_sim_sum = torch.sum(no_sim , dim=1)
+        no_sim_sum_expend = no_sim_sum.repeat(n, 1).T
+        sim_sum  = sim + no_sim_sum_expend
+        loss = torch.div(sim , sim_sum)
+        loss = mask_no_sim + loss + torch.eye(n, n ,device='cuda:0', requires_grad=True)
+        loss = -torch.log(loss)  #求-log
+        loss = torch.sum(torch.sum(loss, dim=1) )/(2*n)  #将所有数据都加起来除以2n
+        return loss
+    
     def forward(
         self,
         input_ids=None,
         attention_mask=None,
         mask_pos=None,
         labels=None,
+        alpha = 0
     ):
         batch_size = input_ids.size(0)
 
@@ -159,7 +208,6 @@ class RobertaForPromptFinetuning(BertPreTrainedModel):
 
         # Logits over vocabulary tokens
         prediction_mask_scores = self.lm_head(sequence_mask_output)
-
         # Exit early and only return mask logits.
         if self.return_full_softmax:
             if labels is not None:
@@ -192,4 +240,7 @@ class RobertaForPromptFinetuning(BertPreTrainedModel):
         if self.num_labels == 1:
             # Regression output
             output = (torch.exp(logits[..., 1].unsqueeze(-1)) * (self.ub - self.lb) + self.lb,)
+
+        con_loss = self.contrastive_loss(prediction_mask_scores, labels)
+        loss = loss + con_loss * alpha
         return ((loss,) + output) if loss is not None else output

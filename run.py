@@ -213,6 +213,8 @@ class DynamicDataTrainingArguments(DataTrainingArguments):
     )
 
 
+
+
 @dataclass
 class DynamicTrainingArguments(TrainingArguments):
     # For ensemble
@@ -258,6 +260,10 @@ class DynamicTrainingArguments(TrainingArguments):
         metadata={"help": "No test"}
     )
 
+    alpha: float = field(
+        default=0,
+        metadata={"help": "Number of context examples"}
+    )
 
 def main():
     parser = HfArgumentParser((ModelArguments, DynamicDataTrainingArguments, DynamicTrainingArguments))
@@ -528,7 +534,8 @@ def main():
 
     # Training
     if training_args.do_train:
-        trainer.train(model_path=model_args.model_name_or_path if os.path.isdir(model_args.model_name_or_path) else None)
+        
+        trainer.train(model_path=model_args.model_name_or_path if os.path.isdir(model_args.model_name_or_path) else None, alpha = training_args.alpha)
         # Use the early stop, so do not save the model in the end (unless specify save_at_last)
         if training_args.save_at_last:
             trainer.save_model(training_args.output_dir)

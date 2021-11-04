@@ -27,7 +27,7 @@ import shutil
 import warnings
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-
+import inspect
 import numpy as np
 import torch
 from packaging import version
@@ -225,7 +225,7 @@ class Trainer(transformers.Trainer):
                 self.optimizer, num_warmup_steps=self.args.warmup_steps, num_training_steps=num_training_steps
             )
 
-    def train(self, model_path=None, dev_objective=None):
+    def train(self, model_path=None, dev_objective=None, alpha = 0):
         """
         Main training entry point.
 
@@ -326,6 +326,7 @@ class Trainer(transformers.Trainer):
                 logger.info("  Starting fine-tuning.")
 
         tr_loss = torch.tensor(0.0).to(self.args.device)
+
         logging_loss_scalar = 0.0
         model.zero_grad()
         train_iterator = trange(
@@ -346,15 +347,17 @@ class Trainer(transformers.Trainer):
             # Reset the past mems state at the beginning of each epoch if necessary.
             if self.args.past_index >= 0:
                 self._past = None
-
+            con_embeddings = []
             for step, inputs in enumerate(epoch_iterator):
 
                 # Skip past any already trained steps if resuming training
                 if steps_trained_in_current_epoch > 0:
                     steps_trained_in_current_epoch -= 1
                     continue
-
-                tr_loss += self.training_step(model, inputs)
+                # print(inspect.getsourcefile(self.training_step))
+                step_loss = self.training_step(model, inputs, alpha = alpha)
+                tr_loss += step_loss
+                # logger.info(embedding)
 
                 if (step + 1) % self.args.gradient_accumulation_steps == 0 or (
                     # last step in epoch but step is always smaller than gradient_accumulation_steps
@@ -471,3 +474,70 @@ class Trainer(transformers.Trainer):
             xm.master_print(met.metrics_report())
 
         return output
+
+    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]], alpha = 0) -> torch.Tensor:
+        """
+        Perform a training step on a batch of inputs.
+
+        Subclass and override to inject custom behavior.
+
+        Args:
+            model (:obj:`nn.Module`):
+                The model to train.
+            inputs (:obj:`Dict[str, Union[torch.Tensor, Any]]`):
+                The inputs and targets of the model.
+
+                The dictionary will be unpacked before being fed to the model. Most models expect the targets under the
+                argument :obj:`labels`. Check your model's documentation for all accepted arguments.
+
+        Return:
+            :obj:`torch.Tensor`: The tensor with training loss on this batch.
+        """
+        if hasattr(self, "_training_step"):
+            warnings.warn(
+                "The `_training_step` method is deprecated and won't be called in a future version, define `training_step` in your subclass.",
+                FutureWarning,
+            )
+            return self._training_step(model, inputs, self.optimizer)
+
+        model.train()
+        inputs = self._prepare_inputs(inputs)
+
+        if self.args.fp16 and _use_native_amp:
+            with autocast():
+                loss = self.compute_loss(model, inputs)
+        else:
+            loss = self.compute_loss(model, inputs, alpha = alpha)
+
+        if self.args.n_gpu > 1:
+            loss = loss.mean()  # mean() to average on multi-gpu parallel training
+
+        if self.args.gradient_accumulation_steps > 1:
+            loss = loss / self.args.gradient_accumulation_steps
+
+        if self.args.fp16 and _use_native_amp:
+            self.scaler.scale(loss).backward()
+        elif self.args.fp16 and _use_apex:
+            with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                scaled_loss.backward()
+        else:
+            loss.backward()
+
+        return loss.detach()
+
+    def compute_loss(self, model, inputs, alpha = 0):
+        """
+        How the loss is computed by Trainer. By default, all models return the loss in the first element.
+
+        Subclass and override for custom behavior.
+        """
+        # print(inspect.getsourcefile(model()))
+        outputs = model(**inputs, alpha = alpha)
+        # logger.info(outputs[0])
+        # logger.info(outputs[1])
+        # logger.info(outputs[2])
+        # Save past state if it exists
+        if self.args.past_index >= 0:
+            self._past = outputs[self.args.past_index]
+        # We don't use .loss here since the model may return tuples instead of ModelOutput.
+        return outputs[0]
