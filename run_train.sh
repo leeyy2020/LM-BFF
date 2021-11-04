@@ -1,12 +1,12 @@
 #!/bin/bash
 
 
-job_name=$1
+task_name=$1
 
-./run_all.sh $job_name &> train.log
+./run_all.sh $task_name &> train.log
 
 
-mv log output/${job_name}_log
+mv log output/${task_name}_log
 
 # cd output
 # for i in `ls`;do

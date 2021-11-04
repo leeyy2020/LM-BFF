@@ -14,7 +14,7 @@ do
                 BS=$bs \
                 LR=$lr \
                 SEED=$seed \
-                MODEL=roberta-large \
+                MODEL=./roberta-large \
                 bash run_experiment.sh
                 rm -rf result/
             done

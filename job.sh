@@ -1,4 +1,5 @@
 #!/bin/bash
+task_name=$1
 echo "==============JOB BEGIN============"
 
 # /home/HGCP_Program/software-install/openmpi-1.8.5/bin/mpirun sh run.sh
@@ -16,5 +17,5 @@ echo "==============JOB BEGIN============"
 
 echo "===============SETUP DONE=========="
 
-./run_train.sh
+./run_train.sh $task_name
 echo "===============JOB END============="

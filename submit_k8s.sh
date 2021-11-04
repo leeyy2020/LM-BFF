@@ -13,7 +13,7 @@ gpu_cards=1
 not_wait=0
 
 job_name=$1
-
+task_name=$2
 if [[ ${nodes} -le 1 ]];then
     start_file=./job.sh
 else
@@ -39,5 +39,5 @@ sk=7cf347fbedc0586ea905797d5c1c65b8
     --wall-time ${walltime:-"00:00:00"} \
     --file-dir "." \
     --skip-config-check \
-    --start-cmd "sh ${start_file} $job_name" \
+    --start-cmd "sh ${start_file} $task_name" \
     --job-conf ${conf_path}
