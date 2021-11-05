@@ -9,13 +9,13 @@ do
             do
                 ALPHA=$al \
                 TAG=exp \
-                TYPE=prompt \
+                TYPE=prompt-demo \
                 TASK=$task_name \
                 BS=$bs \
                 LR=$lr \
                 SEED=$seed \
                 MODEL=./roberta-large \
-                bash run_experiment.sh
+                bash run_experiment.sh "--template_path auto_template/$task_name/16-$seed.sort.txt --template_id 0 --demo_filter --demo_filter_model sbert-roberta-large"
                 rm -rf result/
             done
         done
