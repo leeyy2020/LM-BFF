@@ -13,3 +13,6 @@ export http_proxy=http://172.19.56.199:3128
 wget 10.9.189.4:9876/data.tgz
 tar zxvf data.tgz 
 rm -f data.tgz
+
+sh tools/get_sbert_embedding.sh ./roberta-large &> install2.log 
+

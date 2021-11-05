@@ -1,8 +1,8 @@
 MODEL=$1
 K=16
 
-python tools/get_sbert_embedding.py --sbert_model $MODEL --task SST-2 sst-5 mr cr mpqa subj trec CoLA MRPC QQP STS-B MNLI SNLI QNLI RTE
-python tools/get_sbert_embedding.py --sbert_model $MODEL --seed 42 --do_test --task SST-2 sst-5 mr cr mpqa subj trec CoLA MRPC QQP STS-B MNLI SNLI QNLI RTE
+./python3.7.0/bin/python3.7  tools/get_sbert_embedding.py --sbert_model $MODEL --task SST-2 sst-5 mr cr mpqa subj trec CoLA MRPC QQP STS-B MNLI SNLI QNLI RTE
+./python3.7.0/bin/python3.7  tools/get_sbert_embedding.py --sbert_model $MODEL --seed 42 --do_test --task SST-2 sst-5 mr cr mpqa subj trec CoLA MRPC QQP STS-B MNLI SNLI QNLI RTE
 
 for seed in 13 21 87 100
 do

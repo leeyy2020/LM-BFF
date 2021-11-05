@@ -110,7 +110,7 @@ DATA_DIR=data/k-shot/$TASK/$K-$SEED
 export https_proxy=http://172.19.56.199:3128 
 export http_proxy=http://172.19.56.199:3128
 
-CUDA_VISIBLE_DEVICES=3 ./python3.7.0/bin/python3.7 run.py \
+./python3.7.0/bin/python3.7 run.py \
   --task_name $TASK \
   --data_dir $DATA_DIR \
   --overwrite_output_dir \
