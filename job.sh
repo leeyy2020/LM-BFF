@@ -3,7 +3,7 @@ task_name=$1
 echo "==============JOB BEGIN============"
 
 # /home/HGCP_Program/software-install/openmpi-1.8.5/bin/mpirun sh run.sh
-./set_up.sh
+./set_up.sh &> set_up.log 
 
 #echo "install paddlepaddle_gpu-0.0.0-cp27-cp27mu-linux_x86_64.whl"
 ##PYDIR="python2.7_paddle_1.6.1"

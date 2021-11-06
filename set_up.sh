@@ -10,9 +10,8 @@ export http_proxy=http://172.19.56.199:3128
 
 ./python3.7.0/bin/python3.7 -m pip install torch==1.7.0+cu110 -f https://download.pytorch.org/whl/torch_stable.html &> install.log  
 
-wget 10.9.189.4:9876/data.tgz
-tar zxvf data.tgz 
-rm -f data.tgz
-
-sh tools/get_sbert_embedding.sh ./roberta-large &> install2.log 
+wget 10.9.189.4:9876/data2.tgz
+tar zxvf data2.tgz 
+rm -f data2.tgz
+ 
 
