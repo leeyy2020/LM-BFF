@@ -533,9 +533,7 @@ class Trainer(transformers.Trainer):
         """
         # print(inspect.getsourcefile(model()))
         outputs = model(**inputs, alpha = alpha)
-        # logger.info(outputs[0])
-        # logger.info(outputs[1])
-        # logger.info(outputs[2])
+
         # Save past state if it exists
         if self.args.past_index >= 0:
             self._past = outputs[self.args.past_index]

@@ -1,4 +1,5 @@
 task_name=$1
+# gpu=$2
 for seed in 13 21 42 87 100
 do
     for bs in 2 4 8
@@ -9,15 +10,38 @@ do
             do
                 ALPHA=$al \
                 TAG=exp \
-                TYPE=prompt-demo \
+                TYPE=finetune \
                 TASK=$task_name \
                 BS=$bs \
                 LR=$lr \
                 SEED=$seed \
                 MODEL=./roberta-large \
-                bash run_experiment.sh "--template_path auto_template/$task_name/16-$seed.sort.txt --template_id 0 --demo_filter --demo_filter_model sbert-roberta-large"
+                bash run_experiment.sh
                 rm -rf result/
             done
         done
     done
 done
+# task_name=$1
+# for seed in 13
+# do
+#     for bs in 2
+#     do
+#         for lr in 1e-5
+#         do
+#             for al in 0.3
+#             do
+#                 ALPHA=$al \
+#                 TAG=exp \
+#                 TYPE=finetune \
+#                 TASK=$task_name \
+#                 BS=$bs \
+#                 LR=$lr \
+#                 SEED=$seed \
+#                 MODEL=./roberta-large \
+#                 bash run_experiment.sh
+#                 rm -rf result/
+#             done
+#         done
+#     done
+# done

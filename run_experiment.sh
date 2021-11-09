@@ -136,6 +136,7 @@ export http_proxy=http://172.19.56.199:3128
   --template $TEMPLATE \
   --mapping $MAPPING \
   --alpha $ALPHA \
+  --alpha_tag $ALPHA \
   $TASK_EXTRA \
   $1 
 

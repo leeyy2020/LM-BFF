@@ -16,7 +16,7 @@ from transformers import GlueDataTrainingArguments as DataTrainingArguments
 from transformers import HfArgumentParser, TrainingArguments, set_seed
 
 from src.dataset import FewShotDataset
-from src.models import BertForPromptFinetuning, RobertaForPromptFinetuning, resize_token_type_embeddings
+from src.models import BertForPromptFinetuning, RobertaForPromptFinetuning, resize_token_type_embeddings, RobertaForSequenceClassification
 from src.trainer import Trainer
 from src.processors import processors_mapping, num_labels_mapping, output_modes_mapping, compute_metrics_mapping, bound_mapping
 
@@ -212,6 +212,10 @@ class DynamicDataTrainingArguments(DataTrainingArguments):
         metadata={"help": "(DO NOT List of templates (only initialized after the program starts."}
     )
 
+    alpha_tag: float = field(
+        default=0,
+        metadata={"help": "Number of context examples"}
+    )
 
 
 
@@ -446,7 +450,7 @@ def main():
         else:
             raise NotImplementedError
     elif model_args.few_shot_type == 'finetune':
-        model_fn = AutoModelForSequenceClassification
+        model_fn = RobertaForSequenceClassification
     else:
         raise NotImplementedError
     special_tokens = []
@@ -620,8 +624,8 @@ def main():
 
             test_results.update(test_result)
 
-    with FileLock('log.lock'):
-        with open('log', 'a') as f:
+    with FileLock('./log/' + data_args.task_name + '_log.lock'):
+        with open('./log/' + data_args.task_name + '_log', 'a') as f:
             final_result.update(vars(model_args))
             final_result.update(vars(training_args))
             final_result.update(vars(data_args))
