@@ -2,11 +2,11 @@ task_name=$1
 # gpu=$2
 for seed in 13 21 42 87 100
 do
-    for bs in 2 4 8
+    for bs in 2 4 8 16
     do
         for lr in 1e-5 2e-5 5e-5
         do
-            for al in 0.1 0.3 0.5 0.7 1
+            for al in 0.1 0.3 0.5 0.7 0.9
             do
                 ALPHA=$al \
                 TAG=exp \
@@ -25,7 +25,7 @@ done
 # task_name=$1
 # for seed in 13
 # do
-#     for bs in 2
+#     for bs in 16
 #     do
 #         for lr in 1e-5
 #         do

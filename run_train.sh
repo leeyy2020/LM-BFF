@@ -6,7 +6,7 @@ task_name=$1
 ./run_all.sh $task_name &> train.log
 
 
-mv log output/${task_name}_log
+mv log output/${task_name}_finetune_CSL_log
 
 # cd output
 # for i in `ls`;do

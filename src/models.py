@@ -278,7 +278,53 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
         loss = loss / (batch_num * batch_num - batch_num)
         loss = loss / 100
         return loss
-    
+
+    def contrastive_loss2(self, sentence_embedding, label):
+        T = 0.3
+        label = label
+        n = label.shape[0]  # batch
+        representations = sentence_embedding
+        matrix = F.cosine_similarity(representations.unsqueeze(1), representations.unsqueeze(0), dim=2)
+        # matrix = torch.mm(sentence_embedding, sentence_embedding.t())
+        # label_mask = torch.zeros(n ,n, device='cuda:0', requires_grad=True)
+        
+        label_number_mask = torch.zeros(n ,n, device='cuda:0')
+
+        np_label = label.cpu()
+        np_label = np_label.numpy()
+        label_dic = {}
+        for i in range(n):
+            if label_dic.get(np_label[i]) is not None :
+                label_dic[np_label[i]] += 1
+            else:
+                label_dic[np_label[i]] = 1
+        for i in range(n):
+            tmp = label_dic[np_label[i]]
+            if tmp > 1:
+                for j in range(n):
+                    label_number_mask[i][j] = -(1/(tmp - 1 ))
+        
+        label_mask = torch.ones_like(matrix, device='cuda:0', requires_grad=True) * (label.expand(n, n).eq(label.expand(n, n).t()))
+        label_mask = label_mask * label_number_mask
+
+        mask_dui_jiao_0 = torch.ones(n ,n, device='cuda:0', requires_grad=True) - torch.eye(n, n , device='cuda:0', requires_grad=True)
+
+        matrix = torch.exp(matrix/T)
+
+        matrix_1 = matrix * mask_dui_jiao_0
+
+        matrix_sum = torch.sum(matrix_1 , dim=1)
+        # logger.info(matrix_sum)
+
+        loss = torch.div(matrix, matrix_sum)
+
+        loss = torch.log(loss)
+        loss = loss * mask_dui_jiao_0
+        loss = loss * label_mask
+        loss = torch.sum(torch.sum(loss, dim=1) ) #将所有数据都加起来
+
+        return loss
+
     def forward(
         self,
         input_ids=None,
@@ -323,9 +369,9 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
                 loss_fct = nn.CrossEntropyLoss()
                 loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
 
-        con_loss = self.contrastive_loss(sequence_output[:, 0, :], labels)
+        con_loss = self.contrastive_loss2(sequence_output[:, 0, :], labels)
 
-        loss = loss + con_loss * alpha
+        loss = (1 - alpha) * loss + con_loss * alpha
 
         if not return_dict:
             output = (logits,) + outputs[2:]
