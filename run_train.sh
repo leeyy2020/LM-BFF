@@ -5,8 +5,8 @@ task_name=$1
 
 ./run_all.sh $task_name &> train.log
 
+mv log output/${task_name}_pet_SCL_log
 
-mv log output/${task_name}_log
 
 # cd output
 # for i in `ls`;do

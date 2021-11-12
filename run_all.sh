@@ -5,17 +5,17 @@ do
     do
         for lr in 1e-5 2e-5 5e-5
         do
-            for al in 0.1 0.3 0.5 0.7 1
+            for al in 0.1 0.3 0.5 0.7 0.9
             do
                 ALPHA=$al \
                 TAG=exp \
-                TYPE=prompt-demo \
+                TYPE=prompt \
                 TASK=$task_name \
                 BS=$bs \
                 LR=$lr \
                 SEED=$seed \
                 MODEL=./roberta-large \
-                bash run_experiment.sh "--template_path auto_template/$task_name/16-$seed.sort.txt --template_id 0 --demo_filter --demo_filter_model sbert-roberta-large"
+                bash run_experiment.sh
                 rm -rf result/
             done
         done
